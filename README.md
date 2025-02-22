@@ -69,8 +69,8 @@ AES-256 (Advanced Encryption Standard) is a widely used encryption algorithm for
 
 | **Feature**              | **Fireproof-256** | **AES-256** |
 |--------------------------|------------------|-------------|
-| **Encryption Type**      | Zero-Knowledge Proofs (zk-SNARKs) + Multi-Hop | Symmetric Block Cipher |
-| **Bit Security Level**   | 256-bit zk-SNARK proofs with Poseidon/MiMC hashing | 256-bit symmetric encryption |
+| **Encryption Type**      | Zero-Knowledge Proofs (zk-STARKs) + Multi-Hop | Symmetric Block Cipher |
+| **Bit Security Level**   | 256-bit zk-STARK proofs with Poseidon/MiMC hashing | 256-bit symmetric encryption |
 | **Use Case**            | Payroll privacy, compliance tracking, multi-hop transfers | General-purpose data encryption |
 | **Key Management**      | No key sharing (zk-Proof verification instead) | Requires key exchange |
 | **Security Model**      | zk-Proofs, Merkle Proofs, Multi-Hop, Fake Noise | Block cipher-based encryption |
@@ -84,10 +84,10 @@ AES-256 (Advanced Encryption Standard) is a widely used encryption algorithm for
 ## 🔹 **How Fireproof-256 Uses 256-Bit Security**  
 
 🔥 **Fireproof-256 Still Uses 256-Bit Security – But Differently**  
-Unlike AES-256, which **encrypts data with a 256-bit symmetric key**, Fireproof-256 **uses 256-bit zk-SNARK proofs for transaction verification and encryption obfuscation**.  
+Unlike AES-256, which **encrypts data with a 256-bit symmetric key**, Fireproof-256 **uses 256-bit zk-STARK proofs for transaction verification and encryption obfuscation**.  
 
 Fireproof-256 achieves **256-bit security** through:  
-✅ **Poseidon & MiMC 256-bit cryptographic hashing** for zk-SNARK proofs.  
+✅ **Poseidon & MiMC 256-bit cryptographic hashing** for zk-STARK proofs.  
 ✅ **256-bit Merkle Proofs** to verify payroll and tax records without revealing worker identities.  
 ✅ **Multi-Hop Transaction Mixing with 256-bit entropy** to prevent tracing payments.  
 ✅ **Fake Noise with 256-bit randomized payloads** to disrupt tracking attempts.  
@@ -109,7 +109,7 @@ Fireproof-256 ensures **governments can audit employer tax records** **without s
 ## 🔗 **Cross-Chain Payroll Execution (Aleo ↔ Aztec)**  
 
 ✔ **Payroll funds can move between Aleo & Aztec seamlessly**  
-✔ **zk-SNARK verification ensures transfers are valid**  
+✔ **zk-STARK verification ensures transfers are valid**  
 ✔ **SubDAO balances remain synced across both networks**  
 
 Workers can **switch between AleoUSDC & CircleUSDC payroll at any time** while ensuring **zk-Proofed compliance.**  

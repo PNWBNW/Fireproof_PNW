@@ -1,5 +1,5 @@
 //  Fireproof-256 Poseidon Hash Module
-program fireproof_poseidon.aleo;
+program fireproof_poseidon.leo;
 
 //  Poseidon Constants
 const POSEIDON_ROUNDS = 65; // Adjusted for high security and zk-efficiency

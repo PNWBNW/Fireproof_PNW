@@ -1,5 +1,5 @@
 //  Fireproof-256 Cryptographic Module
-program fireproof_crypto.aleo;
+program fireproof_crypto.leo;
 
 //  MiMC Hash Function for Encrypted Salary & Tax Payments
 function mimc_hash(input: field) -> field {

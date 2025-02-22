@@ -76,7 +76,7 @@ AES-256 (Advanced Encryption Standard) is a widely used encryption algorithm for
 | **Security Model**      | zk-Proofs, Merkle Proofs, Multi-Hop, Fake Noise | Block cipher-based encryption |
 | **Anonymity**           | Fully anonymous payroll execution | Requires trusted parties to decrypt |
 | **Regulatory Compliance** | Ensures tax compliance without revealing payroll details | No built-in compliance tracking |
-| **Performance**         | Optimized for blockchain zk-SNARK execution | Optimized for static data encryption |
+| **Performance**         | Optimized for blockchain zk-STARK execution | Optimized for static data encryption |
 | **Resistance to Attacks** | Immune to brute-force key guessing | Requires strong key management |
 | **Data Visibility**      | Obfuscated transactions (only zk-verified entities can see relevant details) | Requires decryption for access |
 

@@ -1,0 +1,49 @@
+//  Fireproof-256 Worker Verification zk-SNARK
+program update_workers.zkp;
+
+import aleo_std::*;
+import aleo_zpass::*;
+import aleo_ans::*;
+
+struct WorkerVerification {
+    worker_id: Field,
+    worker_ans: String,
+    zpass_verified: bool,
+    is_active: bool,
+}
+
+//  Function: Verify Worker Identity with zk-SNARK
+fn verify_worker(worker_id: Field) -> WorkerVerification {
+    let worker_ans = aleo_ans::get_ans(worker_id);
+    assert!(worker_ans != "", "Worker must be registered with ANS");
+
+    let zpass_verified = aleo_zpass::is_verified(worker_id);
+    assert!(zpass_verified, "Worker must be ZPass verified");
+
+    let is_active = check_worker_status(worker_id);
+    assert!(is_active, "Worker is inactive");
+
+    return WorkerVerification {
+        worker_id,
+        worker_ans,
+        zpass_verified,
+        is_active,
+    };
+}
+
+//  Function: Update Worker zk-SNARK Verification
+fn update_worker_verification(worker_id: Field) -> bool {
+    let worker_info = verify_worker(worker_id);
+    assert!(worker_info.zpass_verified, "Worker must be ZPass verified");
+
+    emit verification_event(worker_id, worker_info.worker_ans);
+    return true;
+}
+
+//  Function: Check Worker Status
+fn check_worker_status(worker_id: Field) -> bool {
+    return query_worker_status(worker_id);
+}
+
+//  Event: Worker zk-SNARK Verification
+event verification_event(worker_id: Field, worker_ans: String);

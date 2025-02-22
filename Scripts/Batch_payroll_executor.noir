@@ -1,0 +1,55 @@
+//  Fireproof-256 Batch Payroll Executor
+program batch_payroll_executor.noir;
+
+import aztec_std::*;
+import pncw_payroll.noir;
+import pniw_payroll.noir;
+import fireproof_obfuscation.noir;
+import fireproof_crypto.noir;
+import merkle_helper.noir;
+
+struct BatchPayrollRecord {
+    worker_id: Field,
+    employer_id: Field,
+    subdao_id: Field,
+    amount: u64,
+    net_payout: u64,
+    tax_withheld: u64,
+    trust_fund_contribution: u64,
+    subdao_expense_fee: u64,
+    timestamp: u64,
+}
+
+//  Function: Execute Batch Payroll for PNcW Workers
+fn execute_batch_pncw_payroll(payroll_records: Vec<BatchPayrollRecord>) {
+    for record in payroll_records.iter() {
+        assert!(pncw_payroll::verify_compliance(record.employer_id), "Employer non-compliant");
+
+        let proof = fireproof_crypto::generate_payroll_zk_proof(record.worker_id, record.amount);
+        assert!(fireproof_crypto::verify_fireproof_payroll(record.worker_id, proof), "zk-Proof verification failed");
+
+        fireproof_obfuscation::fireproof_multi_hop_transfer(record.employer_id, record.worker_id, record.net_payout, record.timestamp);
+        pncw_payroll::transfer_funds(record);
+        merkle_helper::store_payroll_merkle_root(record.worker_id, record.net_payout, record.timestamp);
+    }
+}
+
+//  Function: Execute Batch Payroll for PNiW Workers
+fn execute_batch_pniw_payroll(payroll_records: Vec<BatchPayrollRecord>) {
+    for record in payroll_records.iter() {
+        assert!(pniw_payroll::verify_compliance(record.employer_id), "Employer non-compliant");
+
+        let proof = fireproof_crypto::generate_payroll_zk_proof(record.worker_id, record.amount);
+        assert!(fireproof_crypto::verify_fireproof_payroll(record.worker_id, proof), "zk-Proof verification failed");
+
+        fireproof_obfuscation::fireproof_multi_hop_transfer(record.employer_id, record.worker_id, record.net_payout, record.timestamp);
+        pniw_payroll::transfer_funds(record);
+        merkle_helper::store_payroll_merkle_root(record.worker_id, record.net_payout, record.timestamp);
+    }
+}
+
+//  Function: Process Batch Payroll for Mixed Worker Categories
+fn execute_combined_batch_payroll(pncw_records: Vec<BatchPayrollRecord>, pniw_records: Vec<BatchPayrollRecord>) {
+    execute_batch_pncw_payroll(pncw_records);
+    execute_batch_pniw_payroll(pniw_records);
+}

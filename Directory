@@ -1,0 +1,28 @@
+Fireproof_PNW/
+│── contracts/
+│   ├── aleo/
+│   │   ├── payroll/
+│   │   │   ├── pncw_payroll.leo
+│   │   │   ├── pniw_payroll.leo
+│   │   │   ├── payroll_pools.leo
+│   │   │   ├── oversightdao_reserve.leo
+│   │   │   ├── subdao_aleo_usdc_reserve.leo
+│   │   │   ├── subdao_circle_usdc_reserve.leo
+│   │   │   ├── process_tax_compliance.leo
+│   │   ├── fireproof/
+│   │   │   ├── fireproof_crypto.leo 
+│   │   │   ├── fireproof_mimc.leo    
+│   │   │   ├── fireproof_poseidon.leo 
+│   │   │   ├── fireproof_zkproofs.leo
+│   │   │   ├── fireproof_obfuscation.leo 
+│   │   ├── government/
+│   │   │   ├── government_api.leo
+│   │   │   ├── merkle_helper.leo
+│   ├── noir/
+│   ├── tests/
+│   │   ├── fireproof_tests.leo
+│   │   ├── payroll_tests.leo
+│   │   ├── compliance_tests.leo
+│── README.md
+│── scripts/
+│── docs/

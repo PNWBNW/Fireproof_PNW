@@ -1,0 +1,163 @@
+//  Fireproof-256 Enhanced Aztec Payroll Contract
+program Aztec_Payroll.noir;
+
+// Import necessary functions
+import aztec_std::*;
+import aleo_zpass::*;
+import aleo_ans::*;
+import circle_usdc::*; // Circle USDC module
+import noir_crypto::*; // Includes MiMC, Poseidon, and zk-Proofs
+
+//  Fireproof Payroll Record
+struct PayrollRecord {
+    worker_id: Field,
+    worker_ans: String,
+    employer_id: Field,
+    subdao_id: Field,
+    subdao_ans: String,
+    encrypted_salary: Field,
+    tax_withheld: u64,
+    trust_fund_contribution: u64,
+    subdao_expense_fee: u64,
+    net_payout: Field, // Encrypted
+    timestamp: u64,
+}
+
+//  Encrypt Salary Using MiMC (Fireproof-256)
+fn fireproof_encrypt_salary(salary: Field, key: Field, nonce: Field) -> Field {
+    return mimc_hash(salary + key + nonce);
+}
+
+//  Generate Poseidon MAC for Authentication
+fn fireproof_mac_salary(worker_id: Field, encrypted_salary: Field, key: Field) -> Field {
+    return poseidon_hash(worker_id + encrypted_salary + key);
+}
+
+//  One-Time Address Shuffling Using Ephemeral Public Keys
+fn generate_shuffled_worker_address(worker_id: Field, shuffle_seed: Field) -> Field {
+    return hash(worker_id + shuffle_seed);
+}
+
+//  Multi-Hop Payroll Transfers Using Aztec Notes
+fn generate_hop_addresses(random_seed: Field) -> (Field, Field, Field) {
+    let hop1 = hash(random_seed + 1);
+    let hop2 = hash(random_seed + 2);
+    let hop3 = hash(random_seed + 3);
+    return (hop1, hop2, hop3);
+}
+
+//  Process Encrypted Payroll Using Fireproof-256
+fn process_payroll(
+    worker_id: Field,
+    employer_id: Field,
+    subdao_id: Field,
+    salary: Field,
+    key: Field,
+    nonce: Field,
+    shuffle_seed: Field,
+    random_seed: Field
+) -> PayrollRecord {
+    
+    // Ensure Worker and Employer Are ZPass Verified
+    assert!(aleo_zpass::is_verified(worker_id), "Worker must be ZPass verified");
+    assert!(aleo_zpass::is_verified(employer_id), "Employer must be ZPass verified");
+
+    // Retrieve ANS Names for Compliance
+    let worker_ans = aleo_ans::get_ans(worker_id);
+    let subdao_ans = aleo_ans::get_ans(subdao_id);
+    assert!(worker_ans != "", "Worker must be registered with ANS");
+    assert!(subdao_ans != "", "SubDAO must be registered with ANS");
+
+    // Encrypt Salary
+    let encrypted_salary = fireproof_encrypt_salary(salary, key, nonce);
+
+    // Generate MAC for Authentication
+    let mac = fireproof_mac_salary(worker_id, encrypted_salary, key);
+
+    // Generate One-Time Shuffled Worker Address
+    let shuffled_worker = generate_shuffled_worker_address(worker_id, shuffle_seed);
+
+    // Multi-Hop Payroll Transfers Using Aztec Notes
+    let (hop1, hop2, hop3) = generate_hop_addresses(random_seed);
+    aztec_std::private_transfer(employer_id, hop1, encrypted_salary);
+    aztec_std::private_transfer(hop1, hop2, encrypted_salary);
+    aztec_std::private_transfer(hop2, hop3, encrypted_salary);
+    aztec_std::private_transfer(hop3, subdao_id, encrypted_salary);
+
+    //  Fake Noise Payroll Transactions for Obfuscation
+    let fake_worker = hash(random_seed + 99);
+    let fake_salary = mimc_hash(random_seed + 77);
+    aztec_std::private_transfer(employer_id, fake_worker, fake_salary);
+
+    // Store Payroll Record
+    let payroll_record = PayrollRecord {
+        worker_id,
+        worker_ans,
+        employer_id,
+        subdao_id,
+        subdao_ans,
+        encrypted_salary,
+        tax_withheld: 0, // Will be handled in compliance check
+        trust_fund_contribution: 0, // Will be handled in compliance check
+        subdao_expense_fee: 0, // Will be handled in compliance check
+        net_payout: encrypted_salary,
+        timestamp: aztec_std::get_current_timestamp(),
+    };
+
+    return payroll_record;
+}
+
+//  Batch Payroll Execution (Multi-Hop, Fake Noise, zk-Proof Validation)
+fn execute_batch_payroll(payroll_records: Vec<PayrollRecord>) {
+    for record in payroll_records.iter() {
+        verify_compliance(record);
+        transfer_funds(record);
+    }
+}
+
+//  Compliance Verification (zk-Proof Based)
+fn verify_compliance(record: PayrollRecord) {
+    let tax_rate = get_tax_rate(record.employer_id);
+    let tax_withheld = (record.encrypted_salary * tax_rate) / 100;
+
+    assert!(tax_withheld >= get_min_tax(record.employer_id), "Tax compliance failure");
+
+    // Update Payroll Record with Withholding Info
+    record.tax_withheld = tax_withheld;
+    record.trust_fund_contribution = (record.encrypted_salary * 5) / 100; // Example 5% to trust fund
+    record.subdao_expense_fee = (record.encrypted_salary * 1) / 1000; // 0.1% SubDAO expense fee
+}
+
+//  zk-Proof Payroll Withdrawals
+fn zk_withdraw_salary(worker_id: Field, proof_of_salary: Field) -> bool {
+    let is_valid = verify_fireproof_payroll(worker_id, proof_of_salary);
+    assert!(is_valid);
+
+    // Transfer Encrypted Salary to Worker
+    return aztec_std::private_transfer(worker_id, proof_of_salary);
+}
+
+//  Payroll Fund Transfers (Circle USDC Only)
+fn transfer_funds(record: PayrollRecord) {
+    circle_usdc::transfer(record.worker_id, record.net_payout);
+    circle_usdc::transfer(tax_authority(), record.tax_withheld);
+    circle_usdc::transfer(aleo_trust_fund_address(record.worker_id), record.trust_fund_contribution);
+    circle_usdc::transfer(record.subdao_id, record.subdao_expense_fee);
+}
+
+//  Utility Functions
+fn get_tax_rate(employer_id: Field) -> u64 {
+    return query_tax_rate(employer_id);
+}
+
+fn get_min_tax(employer_id: Field) -> u64 {
+    return query_tax_rate(employer_id);
+}
+
+fn aleo_trust_fund_address(worker_id: Field) -> Field {
+    return get_trust_fund_address(worker_id);
+}
+
+fn tax_authority() -> Field {
+    return get_tax_address();
+}

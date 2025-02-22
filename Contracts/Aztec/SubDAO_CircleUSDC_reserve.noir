@@ -1,0 +1,101 @@
+//  Fireproof-256 Enhanced SubDAO CircleUSDC Payroll Reserve Contract
+program SubDAO_CircleUSDC_Reserve.noir;
+
+// Import necessary functions
+import oversightdao_combined_reserve.noir;
+import aleo_ans::*;
+import noir_crypto::*; // Includes MiMC, Poseidon, and zk-Proofs
+import circle_usdc::*; // Circle USDC module
+
+//  Fireproof SubDAO Payroll Pool Struct
+struct SubDAO_USDC_Pool {
+    subdao_id: Field,
+    subdao_ans: String,
+    encrypted_balance: Field,
+}
+
+//  Mapping of SubDAO USDC Pools
+let subdao_usdc_pools: Map<Field, SubDAO_USDC_Pool> = {};
+
+//  Encrypt USDC Balance Using MiMC (Fireproof-256)
+fn fireproof_encrypt_balance(balance: Field, key: Field, nonce: Field) -> Field {
+    return mimc_hash(balance + key + nonce);
+}
+
+//  One-Time Address Shuffling Using Ephemeral Public Keys
+fn generate_shuffled_subdao_address(subdao_id: Field, shuffle_seed: Field) -> Field {
+    return hash(subdao_id + shuffle_seed);
+}
+
+//  Function: Deposit CircleUSDC for Payroll
+fn deposit_circle_usdc(subdao_id: Field, employer_id: Field, amount: u64, key: Field, nonce: Field) {
+    let subdao_ans = aleo_ans::get_ans(subdao_id);
+    assert!(subdao_ans != "", "Invalid SubDAO ANS registration");
+
+    let encrypted_balance = fireproof_encrypt_balance(amount, key, nonce);
+
+    if subdao_id in subdao_usdc_pools {
+        subdao_usdc_pools[subdao_id].encrypted_balance += encrypted_balance;
+    } else {
+        subdao_usdc_pools[subdao_id] = SubDAO_USDC_Pool {
+            subdao_id,
+            subdao_ans,
+            encrypted_balance,
+        };
+    }
+}
+
+//  Multi-Hop Payroll Processing With zk-Proof Withdrawals
+fn process_circle_payroll(
+    subdao_id: Field,
+    worker_id: Field,
+    salary: Field,
+    key: Field,
+    nonce: Field,
+    shuffle_seed: Field,
+    random_seed: Field
+) -> bool {
+
+    assert!(subdao_id in subdao_usdc_pools, "SubDAO not registered");
+
+    // Generate Shuffled Worker Address
+    let shuffled_worker = generate_shuffled_subdao_address(worker_id, shuffle_seed);
+
+    // Encrypt Salary
+    let encrypted_salary = fireproof_encrypt_balance(salary, key, nonce);
+
+    // Generate Multi-Hop Addresses
+    let (hop1, hop2, hop3) = generate_hop_addresses(random_seed);
+    aztec_std::private_transfer(subdao_id, hop1, encrypted_salary);
+    aztec_std::private_transfer(hop1, hop2, encrypted_salary);
+    aztec_std::private_transfer(hop2, hop3, encrypted_salary);
+    aztec_std::private_transfer(hop3, shuffled_worker, encrypted_salary);
+
+    //  Fake Noise Payroll Transactions
+    let fake_worker = hash(random_seed + 99);
+    let fake_salary = mimc_hash(random_seed + 77);
+    aztec_std::private_transfer(subdao_id, fake_worker, fake_salary);
+
+    // zk-Proof Required for Worker Withdrawals
+    return true;
+}
+
+//  zk-Proof Payroll Withdrawals
+fn zk_withdraw_salary(worker_id: Field, proof_of_salary: Field) -> bool {
+    let is_valid = verify_fireproof_payroll(worker_id, proof_of_salary);
+    assert!(is_valid);
+
+    // Transfer Encrypted Salary to Worker
+    return aztec_std::private_transfer(worker_id, proof_of_salary);
+}
+
+//  Function: Get Encrypted SubDAO Balance
+fn get_subdao_balance(subdao_id: Field) -> Field {
+    if subdao_id in subdao_usdc_pools {
+        return subdao_usdc_pools[subdao_id].encrypted_balance;
+    }
+    return 0;
+}
+
+//  Event Emitters
+event payroll_disbursement_event(subdao_id: Field, worker_id: Field, amount: Field);

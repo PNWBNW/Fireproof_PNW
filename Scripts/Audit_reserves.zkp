@@ -1,0 +1,54 @@
+//  Fireproof-256 zk-SNARK Audit for SubDAO Payroll Reserves
+program audit_reserves.zkp;
+
+import aleo_std::*;
+import subdao_aleo_usdc_reserve::*;
+import subdao_circle_usdc_reserve::*;
+import fireproof_crypto::*;
+
+struct ReserveAudit {
+    subdao_id: Field,
+    subdao_ans: String,
+    aleo_usdc_balance: u64,
+    circle_usdc_balance: u64,
+    total_liquidity: u64,
+    is_sufficient: bool,
+}
+
+//  Function: Audit SubDAO Payroll Reserves with zk-SNARK
+fn audit_subdao_reserves(subdao_id: Field) -> ReserveAudit {
+    let subdao_ans = aleo_ans::get_ans(subdao_id);
+    assert!(subdao_ans != "", "SubDAO must be registered with ANS");
+
+    let aleo_usdc_balance = subdao_aleo_usdc_reserve::get_subdao_balance(subdao_id);
+    let circle_usdc_balance = subdao_circle_usdc_reserve::get_subdao_balance(subdao_id);
+
+    let total_liquidity = aleo_usdc_balance + circle_usdc_balance;
+    let is_sufficient = total_liquidity >= get_required_reserve(subdao_id);
+
+    return ReserveAudit {
+        subdao_id,
+        subdao_ans,
+        aleo_usdc_balance,
+        circle_usdc_balance,
+        total_liquidity,
+        is_sufficient,
+    };
+}
+
+//  Function: Verify SubDAO zk-SNARK Audit Results
+fn verify_reserve_audit(subdao_id: Field) -> bool {
+    let audit_result = audit_subdao_reserves(subdao_id);
+    assert!(audit_result.is_sufficient, "SubDAO does not have sufficient reserves for payroll");
+
+    emit audit_event(subdao_id, audit_result.subdao_ans, audit_result.total_liquidity);
+    return true;
+}
+
+//  Function: Get Required Reserve for Payroll
+fn get_required_reserve(subdao_id: Field) -> u64 {
+    return query_required_reserve(subdao_id);
+}
+
+//  Event: SubDAO zk-SNARK Reserve Audit
+event audit_event(subdao_id: Field, subdao_ans: String, total_liquidity: u64);

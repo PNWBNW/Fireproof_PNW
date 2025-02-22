@@ -1,5 +1,5 @@
 //  Fireproof-256 MiMC Hash Module
-program fireproof_mimc.aleo;
+program fireproof_mimc.leo;
 
 //  MiMC Constants
 const MIMC_ROUNDS = 91; // Standard MiMC security level

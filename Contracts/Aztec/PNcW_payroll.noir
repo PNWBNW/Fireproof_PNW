@@ -1,0 +1,93 @@
+//  Fireproof-256 PNcW Payroll Contract
+program pncw_payroll.noir;
+
+import aztec_std::*;
+import aleo_zpass::*;
+import aleo_ans::*;
+import circle_usdc::*;
+import fireproof_crypto.noir;
+import fireproof_obfuscation.noir;
+
+//  Payroll Record Structure
+struct PayrollRecord {
+    worker_id: Field,
+    worker_ans: String,
+    employer_id: Field,
+    subdao_id: Field,
+    subdao_ans: String,
+    amount: u64,
+    tax_withheld: u64,
+    trust_fund_contribution: u64,
+    subdao_expense_fee: u64,
+    net_payout: u64,
+    timestamp: u64,
+}
+
+//  Process Payroll (Circle USDC with Fireproof-256)
+fn process_pncw_payroll(worker_id: Field, employer_id: Field, subdao_id: Field, amount: u64) -> PayrollRecord {
+    assert!(aleo_zpass::is_verified(worker_id), "Worker must be ZPass verified");
+    assert!(aleo_zpass::is_verified(employer_id), "Employer must be ZPass verified");
+
+    let worker_ans = aleo_ans::get_ans(worker_id);
+    let subdao_ans = aleo_ans::get_ans(subdao_id);
+    assert!(worker_ans != "", "Worker must be registered with ANS");
+    assert!(subdao_ans != "", "SubDAO must be registered with ANS");
+
+    let tax_rate = get_pncw_tax_rate(employer_id);
+    let tax_withheld = (amount * tax_rate) / 100;
+    let trust_fund_contribution = (amount * 5) / 100; // PNcW contributes 5% to trust fund
+    let subdao_expense_fee = (amount * 1) / 1000;
+    let net_payout = amount - tax_withheld - trust_fund_contribution - subdao_expense_fee;
+
+    let payroll_record = PayrollRecord {
+        worker_id,
+        worker_ans,
+        employer_id,
+        subdao_id,
+        subdao_ans,
+        amount,
+        tax_withheld,
+        trust_fund_contribution,
+        subdao_expense_fee,
+        net_payout,
+        timestamp: get_current_timestamp(),
+    };
+
+    emit payroll_event(worker_id, worker_ans, employer_id, subdao_id, subdao_ans, amount, tax_withheld, trust_fund_contribution, subdao_expense_fee, net_payout);
+
+    return payroll_record;
+}
+
+//  Batch Payroll Execution
+fn execute_batch_pncw_payroll(payroll_records: Vec<PayrollRecord>) {
+    for record in payroll_records.iter() {
+        verify_compliance(record);
+        transfer_funds(record);
+    }
+}
+
+//  Compliance Verification
+fn verify_compliance(record: PayrollRecord) {
+    assert!(record.tax_withheld >= get_pncw_min_tax(record.employer_id), "PNcW Tax compliance failure");
+}
+
+//  Payroll Fund Transfers (Circle USDC Only)
+fn transfer_funds(record: PayrollRecord) {
+    circle_usdc::transfer(record.worker_id, record.net_payout);
+    circle_usdc::transfer(get_pncw_tax_authority(), record.tax_withheld);
+    circle_usdc::transfer(aleo_trust_fund_address(record.worker_id), record.trust_fund_contribution);
+    circle_usdc::transfer(record.subdao_id, record.subdao_expense_fee);
+}
+
+//  Utility Functions
+fn get_pncw_tax_rate(employer_id: Field) -> u64 {
+    return query_pncw_tax_rate(employer_id);
+}
+
+fn get_pncw_min_tax(employer_id: Field) -> u64 {
+    return query_pncw_tax_rate(employer_id);
+}
+
+fn get_pncw_tax_authority() -> Field {
+    return get_pncw_tax_address();
+}
